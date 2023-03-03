@@ -11,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 
 import java.util.List;
 
@@ -24,6 +26,9 @@ public class QuerydslBasicTest {
 
     @Autowired
     EntityManager em;
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
 
     JPAQueryFactory queryFactory;
 
@@ -183,4 +188,66 @@ public class QuerydslBasicTest {
         assertThat(teamBTuple.get(member.age.avg())).isEqualTo(35);
     }
 
+    @Test
+    void join() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .join(member.team, team) // (조인 대상, 별칭으로 사용할 Q타입)
+                .where(team.name.eq("teamA"))
+                .fetch();
+
+        assertThat(result)
+                .extracting("username")
+                .containsExactly("member1", "member2");
+    }
+
+    @Test
+    void join_on() {
+        // on() 활용1: 조인 대상 필터링
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("teamA"))
+                .fetch();
+        /*
+        내부 조인인 경우 on절은 where절로 필터링 하는 것과 기능이 동일함
+        따라서 내부 조인이면 그냥 where를 사용하고, 외부 조인이고 필요한 경우에만 on을 사용하면 됨
+         */
+
+        assertThat(result.get(0).get(team).getName()).isEqualTo("teamA");
+        assertThat(result.get(2).get(team)).isNull();
+    }
+
+    @Test
+    void join_on_no_relationship() {
+        // on() 활용2: 연관 관계 없는 엔티티 외부 조인 (여기서는 Member와 Team이 연관 관계가 없다고 가정)
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(team) // 연관관계가 없다고 가정하기 때문에 member.team이 아니고 생으로 team 외부 조인
+                .on(member.username.eq(team.name)) // SQL에서도 연관관계가 없으면 조인 대상과 id 매칭 없이 on절 조건만으로 필터링
+                .fetch();
+
+        assertThat(result.get(0).get(team)).isNull();
+        assertThat(result.get(4).get(team).getName()).isEqualTo("teamA");
+    }
+
+    @Test
+    void fetch_join() {
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin() // 지연 로딩 설정된 Team을 fetch join으로 함께 조회
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        // 영속성 컨텍스트에 올라온 엔티티인지 확인 (Team)
+        boolean isLoaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+
+        assertThat(isLoaded).isTrue();
+    }
 }
