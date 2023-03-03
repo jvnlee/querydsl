@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 
+import java.util.List;
+
 import static learn.querydsl.entity.QMember.member;
 import static org.assertj.core.api.Assertions.*;
 
@@ -61,4 +63,18 @@ public class QuerydslBasicTest {
 
         assertThat(findMember.getUsername()).isEqualTo("member1");
     }
+
+    @Test
+    void searchConditions() {
+        List<Member> findMembers = queryFactory
+                .selectFrom(member) // select member from member -> selectFrom()으로 단축
+                .where(
+                        member.username.startsWith("mem"),
+                        member.age.between(10, 30)
+                ) // 여러개의 조건식을 and(), or()로 하나의 메서드 체인으로 엮어도 되고, 쉼표로 구분해서 별개의 파라미터처럼 넣어도 됨 (varargs 지원)
+                .fetch();
+
+        assertThat(findMembers.size()).isEqualTo(3);
+    }
+
 }
