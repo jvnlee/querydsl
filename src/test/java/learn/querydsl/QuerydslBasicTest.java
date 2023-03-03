@@ -2,6 +2,7 @@ package learn.querydsl;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import learn.querydsl.entity.Member;
+import learn.querydsl.entity.QMember;
 import learn.querydsl.entity.Team;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,6 +76,35 @@ public class QuerydslBasicTest {
                 .fetch();
 
         assertThat(findMembers.size()).isEqualTo(3);
+    }
+
+    @Test
+    void resultFetch() {
+        List<Member> fetch = queryFactory
+                .selectFrom(member)
+                .fetch(); // 결과 없으면 빈 리스트 반환
+
+        Member fetchOne = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(10))
+                .fetchOne(); // 결과 없으면 null 반환, 결과가 둘 이상이면 NonUniqueResultException 발생
+
+        Member fetchFirst = queryFactory
+                .selectFrom(member)
+                .where(member.age.loe(40))
+                .fetchFirst(); // limit(1).fetchOne()과 동일
+
+        // fetchCount(), fetchResults()는 deprecated (예정)
+
+        Long count = queryFactory
+                .select(member.count()) // "select count(member.id) ..." 쿼리와 동일
+                .from(member)
+                .fetchOne();
+
+        assertThat(fetch.size()).isEqualTo(4);
+        assertThat(fetchOne.getAge()).isEqualTo(10);
+        assertThat(fetchFirst.getAge()).isEqualTo(10);
+        assertThat(count).isEqualTo(4);
     }
 
 }
