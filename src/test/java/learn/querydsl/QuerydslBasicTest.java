@@ -107,4 +107,21 @@ public class QuerydslBasicTest {
         assertThat(count).isEqualTo(4);
     }
 
+    @Test
+    void sort() {
+        em.persist(new Member(null, 100));
+        em.persist(new Member("member5", 100));
+        em.persist(new Member("member6", 100));
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(100)) // age = 100 인 멤버들을
+                .orderBy(member.age.desc(), member.username.asc().nullsLast()) // 나이 내림차순 정렬, 이름 오름차순 정렬(이름이 null이면 맨 마지막에 배치)
+                .fetch();
+
+        assertThat(result.get(0).getUsername()).isEqualTo("member5");
+        assertThat(result.get(1).getUsername()).isEqualTo("member6");
+        assertThat(result.get(2).getUsername()).isNull();
+    }
+
 }
