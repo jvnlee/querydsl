@@ -488,4 +488,30 @@ public class QuerydslBasicTest {
         return age != null ? member.age.eq(age) : null;
     }
 
+    @Test
+    void bulk_update() {
+        /*
+         벌크 연산 시 영속성 컨텍스트를 건너뛰고 DB에 바로 쿼리 (정합성 문제)
+         이후에 이루어지는 조회 작업에 영향을 끼칠 수 있으므로 영속성 컨텍스트 초기화 필요
+         -> em.flush(), em.clear() 호출
+         또는 Spring Data JPA의 @Modifying(clearAutomatically = true) 사용
+         */
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "adult")
+                .where(member.age.goe(20))
+                .execute();
+
+        assertThat(count).isEqualTo(3);
+    }
+
+    @Test
+    void bulk_delete() {
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(25))
+                .execute();
+
+        assertThat(count).isEqualTo(2);
+    }
 }
