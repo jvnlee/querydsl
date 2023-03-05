@@ -1,8 +1,11 @@
 package learn.querydsl;
 
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import learn.querydsl.entity.Member;
+import learn.querydsl.entity.QMember;
 import learn.querydsl.entity.Team;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -249,5 +252,50 @@ public class QuerydslBasicTest {
         boolean isLoaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
 
         assertThat(isLoaded).isTrue();
+    }
+
+    @Test
+    void subQuery_where() {
+        // 서브 쿼리에 사용하는 엔티티의 별칭은 from 절에서 사용한 별칭과 달라야함
+        QMember memberSub = new QMember("memberSub");
+
+        // 서브 쿼리를 생성할 때는 JPAExpressions 사용
+        JPQLQuery<Integer> subQuery = JPAExpressions.select(memberSub.age.max()).from(memberSub);
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(subQuery))
+                .fetch();
+
+        assertThat(result)
+                .extracting("age")
+                .containsExactly(40);
+    }
+
+    @Test
+    void subQuery_select() {
+        QMember memberSub = new QMember("memberSub");
+
+        JPQLQuery<Double> subQuery = JPAExpressions.select(memberSub.age.avg().subtract(member.age)).from(memberSub);
+
+        // JPA 표준 스펙으로는 select 절에 서브쿼리를 사용할 수 없으나, Hibernate에서 지원함
+        List<Tuple> result = queryFactory
+                .select(member.username, subQuery)
+                .from(member)
+                .fetch();
+
+        assertThat(result.get(0).get(1, Double.class)).isEqualTo(15);
+    }
+
+    @Test
+    void subQuery_from() {
+        /*
+        from절의 서브쿼리는 SQL에서는 가능하지만, JPQL에서는 불가능하므로 QueryDSL에서도 역시 사용 불가.
+
+        아래의 방식들로 풀어낼 수 있음
+        1. 서브 쿼리를 JOIN으로 변경
+        2. 쿼리를 분리해서 실행
+        3. 네이티브 SQL 사용
+         */
     }
 }
