@@ -2,6 +2,7 @@ package learn.querydsl;
 
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
@@ -338,4 +339,15 @@ public class QuerydslBasicTest {
         assertThat(result.get(0)).isEqualTo("1순위");
         assertThat(result.get(3)).isEqualTo("3순위");
     }
+
+    @Test
+    void constant() {
+        List<Tuple> result = queryFactory
+                .select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+
+        assertThat(result.get(0).get(1, String.class)).isEqualTo("A");
+    }
+
 }
