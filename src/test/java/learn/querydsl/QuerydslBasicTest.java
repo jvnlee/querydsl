@@ -1,12 +1,15 @@
 package learn.querydsl;
 
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import learn.querydsl.dto.MemberDto;
 import learn.querydsl.entity.Member;
 import learn.querydsl.entity.QMember;
 import learn.querydsl.entity.Team;
@@ -359,5 +362,48 @@ public class QuerydslBasicTest {
         // age는 문자가 아니라서 stringValue()로 문자로 변환해주었는데, 이 메서드는 ENUM을 처리할 때도 요긴하게 사용함
 
         assertThat(result.get(0)).isEqualTo("member1_10");
+    }
+
+    @Test
+    void projection_dto_setter() {
+        /*
+         setter를 통해서 값이 들어감
+         필드명이 다르다면 별칭으로 맞춰주면 됨
+         */
+        List<MemberDto> result = queryFactory
+                .select(Projections.bean(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting("age").containsExactly(10, 20, 30, 40);
+    }
+
+    @Test
+    void projection_dto_field() {
+        /*
+         필드 액세스로 값이 들어감 (setter 없이도 동작)
+         필드가 private이어도 리플렉션을 통해서 가능
+         필드명이 다르다면 별칭으로 맞춰주면 됨
+         */
+        List<MemberDto> result = queryFactory
+                .select(Projections.fields(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting("age").containsExactly(10, 20, 30, 40);
+    }
+
+    @Test
+    void projection_dto_constructor() {
+        /*
+         생성자를 통해서 값이 들어감
+         파라미터 타입 및 순서 일치해야함 (필드명은 달라도 상관 없음)
+         */
+        List<MemberDto> result = queryFactory
+                .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting("age").containsExactly(10, 20, 30, 40);
     }
 }
