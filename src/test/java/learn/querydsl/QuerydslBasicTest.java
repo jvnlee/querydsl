@@ -1,8 +1,9 @@
 package learn.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
-import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.StringExpression;
@@ -430,4 +431,61 @@ public class QuerydslBasicTest {
 
         assertThat(result).extracting("age").containsExactly(10, 20, 30, 40);
     }
+
+    @Test
+    void dynamic_query_booleanbuilder() {
+        List<Member> result = searchMember("member1", 10);
+
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("member1");
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+
+    private List<Member> searchMember(String cond1, Integer cond2) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        if (cond1 != null) { // 유저명 조건이 존재하면
+            builder.and(member.username.eq(cond1)); // builder에 조건절 추가
+        }
+
+        if (cond2 != null) { // 나이 조건이 존재하면
+            builder.and(member.age.eq(cond2)); // builder에 조건절 추가
+        }
+
+        return queryFactory
+                .selectFrom(member)
+                .where(builder) // BooleanBuilder로 동적 생성한 조건절 활용
+                .fetch();
+    }
+
+    @Test
+    void dynamic_query_where_param() {
+        /*
+        장점:
+        - 재사용 가능 (다른 쿼리의 조건절에도 필요 시 사용 가능)
+        - 조립 가능 (usernameEq()과 ageEq()를 and()로 합쳐서 반환하는 메서드 등을 만들 수 있음)
+        - 가독성 향상 (개별 조건절을 메서드로 뽑고, 메서드에 이름을 지어주기 때문에 무슨 조건절인지 파악 가능)
+         */
+        List<Member> result = searchMember2("member1", 10);
+
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("member1");
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+
+    private List<Member> searchMember2(String username, Integer age) {
+        return queryFactory
+                .selectFrom(member)
+                .where(usernameEq(username), ageEq(age)) // 제시된 조건 중에 null은 무시됨
+                .fetch();
+    }
+
+    private BooleanExpression usernameEq(String username) {
+        return username != null ? member.username.eq(username) : null;
+    }
+
+    private BooleanExpression ageEq(Integer age) {
+        return age != null ? member.age.eq(age) : null;
+    }
+
 }
