@@ -10,6 +10,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import learn.querydsl.dto.MemberDto;
+import learn.querydsl.dto.QMemberDto;
 import learn.querydsl.entity.Member;
 import learn.querydsl.entity.QMember;
 import learn.querydsl.entity.Team;
@@ -401,6 +402,29 @@ public class QuerydslBasicTest {
          */
         List<MemberDto> result = queryFactory
                 .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).extracting("age").containsExactly(10, 20, 30, 40);
+    }
+
+    @Test
+    void projection_dto_queryprojection() {
+        /*
+        프로젝션 대상인 MemberDto 클래스의 생성자에 @QueryProjection을 붙이면, QueryDSL이 해당 클래스에 대해서도 Q타입을 생성함
+        생성된 QMemberDto의 생성자를 호출해서 프로젝션을 수행할 수 있음
+
+        Projections.constructor()와의 차이점:
+        - constructor()는 파라미터를 잘못 넘기거나, 필요보다 많이 혹은 적게 넘기는 등의 실수를 해도 컴파일 에러를 못띄우고 런타임 에러를 발생시킴
+        - @QueryProjection 방식은 같은 경우에 대해서 컴파일 에러를 발생시켜서 안전함
+
+        단점:
+        - 추가적인 Q 클래스를 생성해야함
+        - DTO 클래스가 QueryDSL에 의존성을 갖게됨 (생성자에 어노테이션을 붙여야 하므로)
+          다양한 레이어에서 참조할텐데 특정 기술에 종속적인 것은 설계 상 좋지 않음
+         */
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.username, member.age))
                 .from(member)
                 .fetch();
 

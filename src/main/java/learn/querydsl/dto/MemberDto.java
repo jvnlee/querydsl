@@ -1,5 +1,6 @@
 package learn.querydsl.dto;
 
+import com.querydsl.core.annotations.QueryProjection;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ public class MemberDto {
 
     private int age;
 
+    @QueryProjection // Q타입 생성
     public MemberDto(String username, int age) {
         this.username = username;
         this.age = age;
