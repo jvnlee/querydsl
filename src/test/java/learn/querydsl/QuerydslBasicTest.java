@@ -1,6 +1,8 @@
 package learn.querydsl;
 
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -297,5 +299,43 @@ public class QuerydslBasicTest {
         2. 쿼리를 분리해서 실행
         3. 네이티브 SQL 사용
          */
+    }
+
+    @Test
+    void case_simple() {
+        /*
+        case문을 사용해야하는 경우도 분명히 존재함
+        그러나 쿼리에서 case문을 사용하는 어지간한 작업은 애플리케이션 코드 레벨에서 해결하는 것이 나음
+        DB에서는 데이터를 가져오는 것에 주력하고, 데이터를 가공하거나 데이터에 로직을 태우는 것은 애플리케이션 안에서 하자
+         */
+        List<String> result = queryFactory
+                .select(
+                        member.age
+                                .when(10).then("ten")
+                                .when(20).then("twenty")
+                                .otherwise("etc")
+                )
+                .from(member)
+                .fetch();
+
+        assertThat(result.get(0)).isEqualTo("ten");
+        assertThat(result.get(3)).isEqualTo("etc");
+    }
+
+    @Test
+    void case_complex() {
+        // 복잡한 case 처리는 CaseBuilder를 사용
+        StringExpression complexCase = new CaseBuilder()
+                .when(member.age.between(0, 20)).then("1순위")
+                .when(member.age.between(21, 30)).then("2순위")
+                .otherwise("3순위");
+
+        List<String> result = queryFactory
+                .select(complexCase)
+                .from(member)
+                .fetch();
+
+        assertThat(result.get(0)).isEqualTo("1순위");
+        assertThat(result.get(3)).isEqualTo("3순위");
     }
 }
