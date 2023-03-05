@@ -350,4 +350,14 @@ public class QuerydslBasicTest {
         assertThat(result.get(0).get(1, String.class)).isEqualTo("A");
     }
 
+    @Test
+    void concatenation() {
+        List<String> result = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .fetch();
+        // age는 문자가 아니라서 stringValue()로 문자로 변환해주었는데, 이 메서드는 ENUM을 처리할 때도 요긴하게 사용함
+
+        assertThat(result.get(0)).isEqualTo("member1_10");
+    }
 }
