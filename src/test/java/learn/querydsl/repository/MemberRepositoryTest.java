@@ -60,13 +60,24 @@ class MemberRepositoryTest {
         memberRepository.save(member3);
         memberRepository.save(member4);
 
-        MemberSearchCond cond = new MemberSearchCond(); // 검색 조건은 비우고 진행
+        MemberSearchCond cond = new MemberSearchCond();
+        cond.setAgeGoe(25);
+        cond.setAgeLoe(35);
         PageRequest pageRequest = PageRequest.of(0, 3); // 0번 페이지, 크기 3
 
+        /*
+         조건에 부합하는 컨텐츠는 1개 (member3)
+         요청하는 페이지는 0번, 페이지 크기는 3
+
+         첫 페이지이면서 컨텐츠의 크기가 페이지의 크기보다 작으므로 따로 카운트 쿼리를 하지 않아도 total count가 1인 것을 알 수 있음
+         따라서 PageableExecutionUtils.getPage()는 카운트 쿼리를 날리지 않음
+         (쿼리 로그를 통해 count 쿼리가 나가지 않은 것을 확인할 수 있음)
+         */
         Page<MemberTeamDto> result = memberRepository.searchWithPaging(cond, pageRequest);
-        assertThat(result.getSize()).isEqualTo(3);
+
+        assertThat(result.getContent().size()).isEqualTo(1);
         assertThat(result.getContent())
                 .extracting("username")
-                .containsExactly("member1", "member2", "member3");
+                .containsExactly("member3");
     }
 }
