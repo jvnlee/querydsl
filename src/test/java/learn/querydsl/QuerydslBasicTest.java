@@ -514,4 +514,31 @@ public class QuerydslBasicTest {
 
         assertThat(count).isEqualTo(2);
     }
+
+    @Test
+    void sql_function_expressions() {
+        // 사용할 함수는 연결된 DB의 Dialect에 등록되어있거나, Dialect를 상속 받아 만든 클래스에 커스텀 정의되어 있어야함
+        List<String> result = queryFactory
+                .select(
+                        Expressions.stringTemplate(
+                                "function('replace', {0}, {1}, {2})",
+                                member.username, "member", "m"
+                        ) // replace 함수를 사용해서 username의 "member" 문자열을 "m"으로 교체
+                )
+                .from(member)
+                .fetch();
+
+        assertThat(result).containsExactly("m1", "m2", "m3", "m4");
+    }
+
+    @Test
+    void sql_function_sqlexpressions() {
+        // 많은 DB에서 공통적으로 제공하는 보편적인 함수는 QueryDSL 메서드로 내장되어 있기도 함
+        List<String> result = queryFactory
+                .select(member.username.upper()) // QueryDSL에 내장된 upper 함수
+                .from(member)
+                .fetch();
+
+        assertThat(result).containsExactly("MEMBER1", "MEMBER2", "MEMBER3", "MEMBER4");
+    }
 }
